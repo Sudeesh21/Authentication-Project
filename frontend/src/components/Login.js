@@ -31,7 +31,7 @@ function Login() {
     e.preventDefault();
     setMessage('');
     try {
-      const response = await axios.post('/api/auth/login', formData);
+      const response = await axios.post('https://authentication-backend-bz4u.onrender.com/api/auth/login', formData);
       
       // If backend says "OTP sent", we switch the form
       if (response.data.message.includes("OTP")) {
@@ -54,7 +54,7 @@ function Login() {
     e.preventDefault();
     setMessage('');
     try {
-      const response = await axios.post('/api/auth/verify-otp', {
+      const response = await axios.post('https://authentication-backend-bz4u.onrender.com/api/auth/verify-otp', {
         email: formData.email,
         otp: otp
       });

@@ -15,7 +15,7 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/auth/register', formData);
+      await axios.post('https://authentication-backend-bz4u.onrender.com/api/auth/register', formData);
       setMessage('User registered successfully! Please Login.');
     } catch (error) {
       setMessage(error.response?.data?.message || "Registration failed");
