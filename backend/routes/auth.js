@@ -12,64 +12,67 @@ router.post('/register', async (req, res) => {
   try {
     const { username, email, password, role } = req.body;
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User with this email already exists.' });
     }
 
-    // Hash the password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create and save the user
     const newUser = new User({ username, email, password: hashedPassword, role });
-    const savedUser = await newUser.save();
+    await newUser.save();
 
-    res.status(201).json({ message: 'User registered successfully!', user: savedUser });
+    res.status(201).json({ message: 'User registered successfully!', user: { username, email, role } });
   } catch (err) {
     console.error('Error during registration:', err);
     res.status(500).json({ message: 'Server error during registration.' });
   }
 });
 
-// --- 2. LOGIN Endpoint (Generates OTP) ---
+// --- 2. LOGIN Endpoint ---
 router.post('/login', async (req, res) => {
   try {
-    // Find the user
     const user = await User.findOne({ email: req.body.email });
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
 
-    // Check password
     const isPasswordCorrect = await bcrypt.compare(req.body.password, user.password);
     if (!isPasswordCorrect) {
       return res.status(400).json({ message: "Invalid password." });
     }
 
-    // Generate OTP
+    // --- OTP GENERATION ---
     const otp = otpGenerator.generate(6, {
       upperCaseAlphabets: false,
       specialChars: false,
       lowerCaseAlphabets: false
     });
     
-    // Save OTP to Database
     user.otp = otp;
-    user.otpExpires = Date.now() + 300000; // Expires in 5 minutes
+    user.otpExpires = Date.now() + 300000; // 5 minutes
     await user.save();
 
-    // Send OTP via Email
-    await sendEmail(
+    console.log(`Generated OTP for ${user.email}: ${otp}`); // Log OTP to server console for testing
+
+    // --- SEND EMAIL ---
+    const emailSent = await sendEmail(
       user.email,
       'Your Login OTP',
       `Your One-Time Password is: ${otp}`
     );
 
-    // Send response to Frontend to trigger the OTP Input view
+    if (!emailSent) {
+        // If email fails, we still return success but warn the user (or check logs)
+        console.error("Failed to send email via Nodemailer");
+    }
+
+    // --- CRITICAL FIX: Send a clear "requiresOtp" flag ---
     res.status(200).json({ 
-        message: "OTP has been sent to your email. Please verify."
+        message: "OTP sent to email.",
+        requiresOtp: true, // Frontend will check for this!
+        email: user.email 
     });
 
   } catch (err) {
@@ -78,7 +81,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// --- 3. VERIFY OTP Endpoint (Final Login) ---
+// --- 3. VERIFY OTP Endpoint ---
 router.post('/verify-otp', async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -94,26 +97,23 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired OTP." });
     }
 
-    // Generate the JWT Token
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
 
-    // Clear the OTP from the database (security best practice)
     user.otp = undefined;
     user.otpExpires = undefined;
     await user.save();
     
-    // Send the token and user data
     res.status(200).json({ 
         message: "Login successful!", 
         token: token,
         user: { 
             id: user._id, 
             username: user.username, 
-            email: user.email, // <--- IMPORTANT: Include email here for the Profile page
+            email: user.email,
             role: user.role 
         }
     });
