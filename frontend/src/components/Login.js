@@ -5,66 +5,69 @@ import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 
 function Login() {
-  // State for Login Inputs
   const [formData, setFormData] = useState({ email: '', password: '' });
-  
-  // State for OTP Logic
   const [otp, setOtp] = useState('');
-  const [showOtpInput, setShowOtpInput] = useState(false); // Controls which form to show
-  
-  // UI State
+  const [showOtpInput, setShowOtpInput] = useState(false); 
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
-  // Handle text changes for Email/Password
+  // Use the environment variable for URL (Localhost or Render)
+  // If running locally, you might need to hardcode 'http://localhost:5000' if .env isn't set
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Handle text changes for OTP
   const handleOtpChange = (e) => {
     setOtp(e.target.value);
   };
 
-  // --- STEP 1: SUBMIT EMAIL & PASSWORD ---
+  // --- STEP 1: LOGIN (Password Check) ---
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
+    
     try {
-      const response = await axios.post('https://authentication-backend-bz4u.onrender.com/api/auth/login', formData);
+      // Make sure we are hitting the correct URL
+      const response = await axios.post(`${API_URL}/api/auth/login`, formData);
       
-      // If backend says "OTP sent", we switch the form
-      if (response.data.message.includes("OTP")) {
-        setMessage(response.data.message);
-        setShowOtpInput(true); // <--- THIS SWITCHES THE VIEW
+      console.log("Backend Response:", response.data); // Debugging Log
+
+      // --- CRITICAL CHECK ---
+      // We now check the boolean flag, not the text message
+      if (response.data.requiresOtp === true) {
+        setMessage("Password correct. Please enter the OTP sent to your email.");
+        setShowOtpInput(true); // Switch to OTP Form
       } else {
-        // Fallback if you turned off OTP in backend
+        // Fallback: If for some reason OTP isn't required by backend logic
         const { token, user } = response.data;
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
         navigate('/dashboard');
       }
+
     } catch (error) {
-      setMessage(error.response?.data?.message || "Login failed");
+      console.error("Login Error:", error);
+      setMessage(error.response?.data?.message || "Login failed. Check console.");
     }
   };
 
-  // --- STEP 2: SUBMIT OTP ---
+  // --- STEP 2: VERIFY OTP ---
   const handleOtpSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
     try {
-      const response = await axios.post('https://authentication-backend-bz4u.onrender.com/api/auth/verify-otp', {
+      const response = await axios.post(`${API_URL}/api/auth/verify-otp`, {
         email: formData.email,
         otp: otp
       });
 
-      // If OTP is correct, we get the token
       const { token, user } = response.data;
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-      
-      navigate('/dashboard'); // <--- REDIRECT TO DASHBOARD
+      navigate('/dashboard');
+
     } catch (error) {
       setMessage(error.response?.data?.message || "Invalid OTP");
     }
@@ -72,16 +75,12 @@ function Login() {
 
   return (
     <div className="auth-container">
-      
-      {/* The Title is OUTSIDE the box */}
       <h2 className="auth-title">
         {showOtpInput ? "Security Verification" : "Login"}
       </h2>
 
-      {/* The White Box */}
       <div className="auth-form-box">
-        
-        {/* --- FORM 1: EMAIL & PASSWORD --- */}
+        {/* FORM 1: EMAIL & PASSWORD */}
         {!showOtpInput ? (
           <form onSubmit={handleLoginSubmit} style={{display: 'flex', flexDirection: 'column', gap: '15px'}}>
             <div>
@@ -113,8 +112,7 @@ function Login() {
             <button type="submit" className="auth-btn">Sign In</button>
           </form>
         ) : (
-          
-          /* --- FORM 2: OTP INPUT --- */
+          /* FORM 2: OTP INPUT */
           <form onSubmit={handleOtpSubmit} style={{display: 'flex', flexDirection: 'column', gap: '15px'}}>
             <div style={{textAlign: 'center', color: '#64748b', marginBottom: '10px'}}>
               Enter the 6-digit code sent to <strong>{formData.email}</strong>
@@ -129,14 +127,13 @@ function Login() {
                 value={otp}
                 onChange={handleOtpChange}
                 required
-                placeholder="Enter OTP"
+                placeholder="123456"
                 maxLength="6"
                 style={{letterSpacing: '5px', textAlign: 'center', fontSize: '1.2rem'}}
               />
             </div>
 
             <button type="submit" className="auth-btn">Verify & Login</button>
-            
             <button 
               type="button" 
               onClick={() => setShowOtpInput(false)} 
@@ -147,14 +144,12 @@ function Login() {
           </form>
         )}
 
-        {/* Success/Error Message */}
         {message && (
             <div className="message-box" style={{fontSize: '0.9rem', padding: '10px', marginTop: '10px'}}>
                 {message}
             </div>
         )}
 
-        {/* Hide Register link if showing OTP to keep it clean */}
         {!showOtpInput && (
           <div className="auth-link">
             Don't have an account? <Link to="/register">Register here</Link>
