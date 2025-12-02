@@ -1,27 +1,29 @@
-// File: backend/utils/sendEmail.js
-
 const nodemailer = require('nodemailer');
 
 const sendEmail = async (to, subject, text) => {
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail', // You can use other services
+      host: "smtp-relay.brevo.com", // Brevo Server
+      port: 587,                    // Brevo Port
+      secure: false,                
       auth: {
-        user: process.env.EMAIL_USER, // From .env file
-        pass: process.env.EMAIL_PASS  // From .env file
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
       }
     });
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    const info = await transporter.sendMail({
+      from: `"Authentication App" <${process.env.EMAIL_USER}>`, 
       to: to,
       subject: subject,
-      text: text
+      text: text,
     });
 
-    console.log('Email sent successfully');
+    console.log('Email sent successfully:', info.messageId);
+    return true;
   } catch (error) {
     console.error('Error sending email:', error);
+    return false;
   }
 };
 
