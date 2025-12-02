@@ -13,7 +13,7 @@ function Login() {
 
   // Use the environment variable for URL (Localhost or Render)
   // If running locally, you might need to hardcode 'http://localhost:5000' if .env isn't set
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+  const API_URL = 'https://authentication-backend-bz4u.onrender.com';
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
