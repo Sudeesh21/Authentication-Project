@@ -64,8 +64,9 @@ router.post('/login', async (req, res) => {
     );
 
     if (!emailSent) {
-        // If email fails, we still return success but warn the user (or check logs)
-        console.error("Failed to send email via Nodemailer");
+        return res.status(500).json({ 
+            message: "Critical Error: Could not send email. Check Backend Logs." 
+        });
     }
 
     // --- CRITICAL FIX: Send a clear "requiresOtp" flag ---
