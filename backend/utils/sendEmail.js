@@ -17,7 +17,7 @@ const sendEmail = async (to, subject, text) => {
       // --- CHANGE THIS LINE ---
       // Do NOT use process.env.EMAIL_USER here. 
       // Use your ACTUAL Gmail address that you used to sign up for Brevo.
-      from: `"Creativo App" <sudeeshkumarkm21@gmail.com>`, 
+      from: `"Creativo App" <sudeeshcoder@gmail.com>`, 
       to: to,
       subject: subject,
       text: text,
