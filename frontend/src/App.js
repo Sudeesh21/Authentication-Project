@@ -8,9 +8,9 @@ import Register from './components/Register';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
-
-import './App.css'; // Ensure CSS is imported
 import ForgotPassword from './components/ForgotPassword';
+import './App.css'; // Ensure CSS is imported
+
 
 function App() {
   return (
