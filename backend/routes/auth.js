@@ -126,3 +126,73 @@ router.post('/verify-otp', async (req, res) => {
 });
 
 module.exports = router;
+// --- 4. FORGOT PASSWORD (Send OTP) ---
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Generate OTP
+    const otp = otpGenerator.generate(6, { 
+      upperCaseAlphabets: false, 
+      specialChars: false, 
+      lowerCaseAlphabets: false 
+    });
+
+    // Save OTP to DB
+    user.otp = otp;
+    user.otpExpires = Date.now() + 600000; // 10 minutes
+    await user.save();
+
+    // Send Email
+    await sendEmail(
+      email,
+      'Password Reset Request',
+      `Your OTP to reset password is: ${otp}`
+    );
+
+    res.status(200).json({ message: "OTP sent to your email" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// --- 5. RESET PASSWORD (Verify OTP & Update Password) ---
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    // Find user with matching Email AND OTP, ensuring OTP is not expired
+    const user = await User.findOne({ 
+      email, 
+      otp, 
+      otpExpires: { $gt: Date.now() } 
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    // Hash the NEW password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+
+    // Clear OTP fields
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    await user.save();
+
+    res.status(200).json({ message: "Password reset successful! Please login." });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
