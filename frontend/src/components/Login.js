@@ -110,6 +110,12 @@ function Login() {
             </div>
 
             <button type="submit" className="auth-btn">Sign In</button>
+
+            <div style={{textAlign: 'right', marginTop: '10px'}}>
+              <Link to="/forgot-password" style={{fontSize: '0.85rem', color: '#4f46e5', textDecoration: 'none'}}>
+                Forgot Password?
+              </Link>
+            </div>
           </form>
         ) : (
           /* FORM 2: OTP INPUT */
